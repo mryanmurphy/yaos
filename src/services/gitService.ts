@@ -32,6 +32,7 @@ export interface GitService {
 
 export class SimpleGitService implements GitService {
   private gitProvider: SimpleGit;
+  private branch: string | undefined;
 
   constructor(repoPath: string, public settings: YaosSettings) {
     logger.debug("Initializing SimpleGitService...");
@@ -52,9 +53,18 @@ export class SimpleGitService implements GitService {
   async gitPush(forcePush = false) {
     const options = forcePush ? ["-f"] : [];
 
-    await this.gitProvider.push(DEFAULT_REMOTE, DEFAULT_BRANCH, options);
+    if (!this.branch) {
+      try {
+        this.branch =
+          (await this.gitProvider.getConfig("init.defaultBranch"))?.value ??
+          DEFAULT_BRANCH;
+      } catch {
+        this.branch = DEFAULT_BRANCH;
+      }
+    }
+    await this.gitProvider.push(DEFAULT_REMOTE, this.branch, options);
 
-    logger.info(`Pushed changes to ${DEFAULT_REMOTE}/${DEFAULT_BRANCH}.`);
+    logger.info(`Pushed changes to ${DEFAULT_REMOTE}/${this.branch}.`);
   }
 
   async gitStage(...files: string[]) {
