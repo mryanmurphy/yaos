@@ -12,7 +12,7 @@ import YaosSettingTab, {
   YaosSettings,
 } from "@/views/settingsTab";
 
-import { FileSystemAdapter, Notice, Plugin } from "obsidian";
+import { debounce, FileSystemAdapter, Notice, Plugin, Workspace } from "obsidian";
 
 const PLUGIN_ICON = "sync";
 
@@ -60,6 +60,17 @@ export default class YaosPlugin extends Plugin {
       });
       this.addRibbonIcon(PLUGIN_ICON, PLUGIN_NAME, this.syncVault.bind(this));
       this.addSettingTab(new YaosSettingTab(this.app, this));
+
+      // file listener
+      this.app.workspace.onLayoutReady(() => {
+        this.app.vault.on('modify', file => {
+          logger.info(file, "file modified");
+          debounce(async () => {
+            logger.info("file modified debounced");
+            await this.syncVault();
+          }, 60_000, true);
+        });
+      });
 
       logger.debug("Plugin initialized.");
     } else {
